@@ -5,13 +5,8 @@ import (
 	"log"
 	"net/http"
 
-	"github.com/go-pg/pg/v10"
 	"github.com/julienschmidt/httprouter"
 )
-
-var _ = pg.DB{}
-var _ = http.Client{}
-var _ = httprouter.New()
 
 type Server struct {
 	router *httprouter.Router

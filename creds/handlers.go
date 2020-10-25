@@ -13,17 +13,15 @@ import (
 )
 
 type addUserParameters struct {
-	Username    null.String
-	Name        null.String
-	AdminUserId null.String
-	AdminToken  uuid.UUID
+	Username   null.String
+	Name       null.String
+	AdminToken uuid.UUID
 }
 
 type addUserParametersError struct {
-	Username    bool
-	Name        bool
-	AdminUserId bool
-	AdminToken  bool
+	Username   bool
+	Name       bool
+	AdminToken bool
 }
 
 func (aup addUserParametersError) Error() string {
@@ -50,10 +48,9 @@ func (aup addUserParametersError) Error() string {
 
 func (a *addUserParameters) UnmarshalJSON(bytes []byte) error {
 	var s struct {
-		Username    null.String
-		Name        null.String
-		AdminUserId null.String
-		AdminToken  uuid.UUID
+		Username   null.String
+		Name       null.String
+		AdminToken uuid.UUID
 	}
 	if err := json.Unmarshal(bytes, &s); err != nil {
 		return err
@@ -64,12 +61,11 @@ func (a *addUserParameters) UnmarshalJSON(bytes []byte) error {
 	a.AdminUserId = s.AdminUserId
 	a.AdminToken = s.AdminToken
 
-	if !a.Username.Valid || !a.Name.Valid || !a.AdminUserId.Valid || a.AdminToken.ID() == 0 {
+	if !a.Username.Valid || !a.Name.Valid || a.AdminToken.ID() == 0 {
 		return addUserParametersError{
-			Username:    !a.Username.Valid,
-			Name:        !a.Name.Valid,
-			AdminUserId: !a.AdminUserId.Valid,
-			AdminToken:  a.AdminToken.ID() == 0,
+			Username:   !a.Username.Valid,
+			Name:       !a.Name.Valid,
+			AdminToken: a.AdminToken.ID() == 0,
 		}
 	}
 
@@ -96,7 +92,7 @@ func handleAddUser(db *pg.DB) http.HandlerFunc {
 		if err := db.RunInTransaction(context, func(tx *pg.Tx) error {
 			adminTokens := make([]Token, 0)
 			adminTokenExists, err := db.Model(&adminTokens).Where(
-				"user_id = ? AND scope = 'severnatazvezda.com'", parameters.AdminUserId, parameters.AdminToken.String(),
+				"id = ? AND scope = 'severnatazvezda.com'", parameters.AdminToken,
 			).Exists()
 			if err != nil {
 				return err

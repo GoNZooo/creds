@@ -1,27 +1,20 @@
 package creds
 
 import (
-	"fmt"
 	"net/http"
 
 	"github.com/go-pg/pg/v10"
 )
 
-func (s *Server) setupRoutes(_ *pg.DB) {
+func (s *Server) setupRoutes(db *pg.DB) {
 	routes := []routeSpecification{
 		get{"/", handleIndex()},
+		post{"/users", handleAddUser(db)},
+		get{"/users", handleGetUsers(db)},
+		get{"/user/:Id", handleGetUser(db)},
 	}
 
 	s.addRoutes(routes)
-}
-
-func handleIndex() http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-		_, err := fmt.Fprint(w, "hello!")
-		if err != nil {
-			fmt.Printf("Unable to send hello response: %s", err.Error())
-		}
-	}
 }
 
 type post struct {

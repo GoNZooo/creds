@@ -247,12 +247,3 @@ func handleGetUsers(db *pg.DB, _ string) http.HandlerFunc {
 		}
 	}
 }
-
-func handleIndex() http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-		_, err := fmt.Fprint(w, "hello!")
-		if err != nil {
-			fmt.Printf("Unable to send hello response: %s", err.Error())
-		}
-	}
-}

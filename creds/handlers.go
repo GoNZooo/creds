@@ -35,10 +35,6 @@ func (aup addUserParametersError) Error() string {
 		errors = append(errors, "'name' missing")
 	}
 
-	if aup.AdminUserId {
-		errors = append(errors, "'adminUserId' missing")
-	}
-
 	if aup.AdminToken {
 		errors = append(errors, "'adminToken' missing")
 	}
@@ -58,7 +54,6 @@ func (a *addUserParameters) UnmarshalJSON(bytes []byte) error {
 
 	a.Username = s.Username
 	a.Name = s.Name
-	a.AdminUserId = s.AdminUserId
 	a.AdminToken = s.AdminToken
 
 	if !a.Username.Valid || !a.Name.Valid || a.AdminToken.ID() == 0 {

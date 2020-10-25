@@ -187,7 +187,7 @@ func handleAddUser(db *pg.DB, adminScope string) http.HandlerFunc {
 			}
 
 			if !adminTokenExists {
-				return fmt.Errorf("user does not have privileges for scope 'severnatazvezda.com'")
+				return fmt.Errorf("user does not have privileges for scope '%s'", adminScope)
 			}
 
 			_, err = db.Model(&u).Insert()

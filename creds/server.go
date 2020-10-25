@@ -29,7 +29,7 @@ type DatabaseOptions struct {
 	Password string
 }
 
-func (s *Server) Serve(port int, databaseOptions DatabaseOptions) {
+func (s *Server) Serve(port int, databaseOptions DatabaseOptions, adminScope string) {
 	if s.router == nil {
 		s.router = httprouter.New()
 	}
@@ -40,7 +40,7 @@ func (s *Server) Serve(port int, databaseOptions DatabaseOptions) {
 		log.Panicf("`createSchema` error: %s", err.Error())
 	}
 
-	s.setupRoutes(db)
+	s.setupRoutes(db, adminScope)
 
 	if err := http.ListenAndServe(fmt.Sprintf(":%d", port), s); err != nil {
 		log.Panicf("Error trying to start server: %s", err.Error())

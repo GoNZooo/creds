@@ -6,12 +6,12 @@ import (
 	"github.com/go-pg/pg/v10"
 )
 
-func (s *Server) setupRoutes(db *pg.DB) {
+func (s *Server) setupRoutes(db *pg.DB, adminScope string) {
 	routes := []routeSpecification{
 		get{"/", handleIndex()},
-		post{"/users", handleAddUser(db)},
-		get{"/users", handleGetUsers(db)},
-		get{"/user/:Id", handleGetUser(db)},
+		post{"/users", handleAddUser(db, adminScope)},
+		get{"/users", handleGetUsers(db, adminScope)},
+		get{"/user/:Id", handleGetUser(db, adminScope)},
 	}
 
 	s.addRoutes(routes)

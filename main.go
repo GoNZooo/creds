@@ -19,8 +19,10 @@ func main() {
 		Password: getRequiredEnvironmentVariable("DATABASE_PASSWORD"),
 	}
 
+	adminScope := getRequiredEnvironmentVariable("ADMIN_SCOPE")
+
 	server := creds.Server{}
-	server.Serve(int(port), databaseOptions)
+	server.Serve(int(port), databaseOptions, adminScope)
 }
 
 func getRequiredEnvironmentIntegerEnvironmentVariable(key string) int {

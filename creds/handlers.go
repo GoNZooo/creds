@@ -67,7 +67,7 @@ func (a *addUserParameters) UnmarshalJSON(bytes []byte) error {
 	return nil
 }
 
-func handleAddUser(db *pg.DB) http.HandlerFunc {
+func handleAddUser(db *pg.DB, adminScope string) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		parameters := addUserParameters{}
 		if err := json.NewDecoder(r.Body).Decode(&parameters); err != nil {
@@ -87,7 +87,7 @@ func handleAddUser(db *pg.DB) http.HandlerFunc {
 		if err := db.RunInTransaction(context, func(tx *pg.Tx) error {
 			adminTokens := make([]Token, 0)
 			adminTokenExists, err := db.Model(&adminTokens).Where(
-				"id = ? AND scope = 'severnatazvezda.com'", parameters.AdminToken,
+				"id = ? AND scope = '?'", parameters.AdminToken, adminScope,
 			).Exists()
 			if err != nil {
 				return err
@@ -113,7 +113,7 @@ func handleAddUser(db *pg.DB) http.HandlerFunc {
 	}
 }
 
-func handleGetUser(db *pg.DB) http.HandlerFunc {
+func handleGetUser(db *pg.DB, _ string) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		id := new(uuid.UUID)
 		parameters := getParameters(r)
@@ -140,7 +140,7 @@ func handleGetUser(db *pg.DB) http.HandlerFunc {
 	}
 }
 
-func handleGetUsers(db *pg.DB) http.HandlerFunc {
+func handleGetUsers(db *pg.DB, _ string) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		users := make([]User, 0)
 		if err := db.Model(&users).Relation("Tokens").Select(); err != nil {

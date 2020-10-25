@@ -12,6 +12,99 @@ import (
 	"gopkg.in/guregu/null.v4"
 )
 
+type addTokenParameters struct {
+	UserId     uuid.UUID
+	Scope      null.String
+	AdminToken uuid.UUID
+}
+
+type addTokenParametersError struct {
+	UserId     bool
+	Scope      bool
+	AdminToken bool
+}
+
+func (aup addTokenParametersError) Error() string {
+	errors := make([]string, 0)
+
+	if aup.UserId {
+		errors = append(errors, "'userId' missing")
+	}
+
+	if aup.Scope {
+		errors = append(errors, "'scope' missing")
+	}
+
+	if aup.AdminToken {
+		errors = append(errors, "'adminToken' missing")
+	}
+
+	return strings.Join(errors, ", ")
+}
+
+func (a *addTokenParameters) UnmarshalJSON(bytes []byte) error {
+	var s struct {
+		UserId      uuid.UUID
+		Scope       null.String
+		AdminUserId uuid.UUID
+		AdminToken  uuid.UUID
+	}
+	if err := json.Unmarshal(bytes, &s); err != nil {
+		return err
+	}
+
+	a.UserId = s.UserId
+	a.AdminToken = s.AdminToken
+	a.Scope = s.Scope
+
+	if a.UserId.ID() == 0 || !a.Scope.Valid || a.AdminToken.ID() == 0 {
+		return addTokenParametersError{
+			UserId:     a.UserId.ID() == 0,
+			Scope:      !a.Scope.Valid,
+			AdminToken: a.AdminToken.ID() == 0,
+		}
+	}
+
+	return nil
+}
+
+func handleAddToken(db *pg.DB, adminScope string) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		var parameters addTokenParameters
+		if err := json.NewDecoder(r.Body).Decode(&parameters); err != nil {
+			_, _ = fmt.Fprintf(w, "Error decoding parameters for adding token: %s", err.Error())
+
+			return
+		}
+
+		adminToken := Token{}
+		if err := db.Model(&adminToken).Where("id = ?", parameters.AdminToken).Select(); err != nil {
+			_, _ = fmt.Fprintf(w, "Unable to get admin token: %s", err.Error())
+
+			return
+		}
+
+		if adminToken.Scope != adminScope {
+			_, _ = fmt.Fprint(w, "Insufficient privileges for adding tokens")
+
+			return
+		}
+
+		t := Token{
+			Id:     uuid.New(),
+			Scope:  parameters.Scope.String,
+			UserId: parameters.UserId,
+			User:   nil,
+		}
+
+		if _, err := db.Model(&t).Insert(); err != nil {
+			_, _ = fmt.Fprintf(w, "Unable to create token: %s", err.Error())
+
+			return
+		}
+	}
+}
+
 type addUserParameters struct {
 	Username   null.String
 	Name       null.String

@@ -9,6 +9,7 @@ import (
 func (s *Server) setupRoutes(db *pg.DB, adminScope string) {
 	routes := []routeSpecification{
 		get{"/", handleIndex()},
+		post{"/tokens", handleAddToken(db, adminScope)},
 		post{"/users", handleAddUser(db, adminScope)},
 		get{"/users", handleGetUsers(db, adminScope)},
 		get{"/user/:Id", handleGetUser(db, adminScope)},

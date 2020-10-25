@@ -63,6 +63,3 @@ func (s *Server) addRoutes(routes []routeSpecification) {
 func (s *Server) addRouteData(rd routeData) {
 	s.router.HandlerFunc(rd.method, rd.path, rd.handler)
 }
-
-var _ = post{}
-var _ = get{}

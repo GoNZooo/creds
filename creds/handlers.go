@@ -23,25 +23,25 @@ type addTokenParametersError struct {
 	AdminToken bool
 }
 
-func (aup addTokenParametersError) Error() string {
+func (parametersError addTokenParametersError) Error() string {
 	errors := make([]string, 0)
 
-	if aup.UserId {
+	if parametersError.UserId {
 		errors = append(errors, "'userId' missing")
 	}
 
-	if aup.Scope {
+	if parametersError.Scope {
 		errors = append(errors, "'scope' missing")
 	}
 
-	if aup.AdminToken {
+	if parametersError.AdminToken {
 		errors = append(errors, "'adminToken' missing")
 	}
 
 	return strings.Join(errors, ", ")
 }
 
-func (a *addTokenParameters) UnmarshalJSON(bytes []byte) error {
+func (parameters *addTokenParameters) UnmarshalJSON(bytes []byte) error {
 	var s struct {
 		UserId      uuid.UUID
 		Scope       null.String
@@ -52,52 +52,52 @@ func (a *addTokenParameters) UnmarshalJSON(bytes []byte) error {
 		return err
 	}
 
-	a.UserId = s.UserId
-	a.AdminToken = s.AdminToken
-	a.Scope = s.Scope
+	parameters.UserId = s.UserId
+	parameters.AdminToken = s.AdminToken
+	parameters.Scope = s.Scope
 
-	if a.UserId.ID() == 0 || !a.Scope.Valid || a.AdminToken.ID() == 0 {
+	if parameters.UserId.ID() == 0 || !parameters.Scope.Valid || parameters.AdminToken.ID() == 0 {
 		return addTokenParametersError{
-			UserId:     a.UserId.ID() == 0,
-			Scope:      !a.Scope.Valid,
-			AdminToken: a.AdminToken.ID() == 0,
+			UserId:     parameters.UserId.ID() == 0,
+			Scope:      !parameters.Scope.Valid,
+			AdminToken: parameters.AdminToken.ID() == 0,
 		}
 	}
 
 	return nil
 }
 
-func handleAddToken(db *pg.DB, adminScope string) http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
+func handleAddToken(database *pg.DB, adminScope string) http.HandlerFunc {
+	return func(writer http.ResponseWriter, request *http.Request) {
 		var parameters addTokenParameters
-		if err := json.NewDecoder(r.Body).Decode(&parameters); err != nil {
-			_, _ = fmt.Fprintf(w, "Error decoding parameters for adding token: %s", err.Error())
+		if err := json.NewDecoder(request.Body).Decode(&parameters); err != nil {
+			_, _ = fmt.Fprintf(writer, "Error decoding parameters for adding token: %s", err.Error())
 
 			return
 		}
 
 		adminToken := Token{}
-		if err := db.Model(&adminToken).Where("id = ?", parameters.AdminToken).Select(); err != nil {
-			_, _ = fmt.Fprintf(w, "Unable to get admin token: %s", err.Error())
+		if err := database.Model(&adminToken).Where("id = ?", parameters.AdminToken).Select(); err != nil {
+			_, _ = fmt.Fprintf(writer, "Unable to get admin token: %s", err.Error())
 
 			return
 		}
 
 		if adminToken.Scope != adminScope {
-			_, _ = fmt.Fprint(w, "Insufficient privileges for adding tokens")
+			_, _ = fmt.Fprint(writer, "Insufficient privileges for adding tokens")
 
 			return
 		}
 
-		t := Token{
+		token := Token{
 			Id:     uuid.New(),
 			Scope:  parameters.Scope.String,
 			UserId: parameters.UserId,
 			User:   nil,
 		}
 
-		if _, err := db.Model(&t).Insert(); err != nil {
-			_, _ = fmt.Fprintf(w, "Unable to create token: %s", err.Error())
+		if _, err := database.Model(&token).Insert(); err != nil {
+			_, _ = fmt.Fprintf(writer, "Unable to create token: %s", err.Error())
 
 			return
 		}
@@ -116,25 +116,25 @@ type addUserParametersError struct {
 	AdminToken bool
 }
 
-func (aup addUserParametersError) Error() string {
+func (parametersError addUserParametersError) Error() string {
 	errors := make([]string, 0)
 
-	if aup.Username {
+	if parametersError.Username {
 		errors = append(errors, "'username' missing")
 	}
 
-	if aup.Name {
+	if parametersError.Name {
 		errors = append(errors, "'name' missing")
 	}
 
-	if aup.AdminToken {
+	if parametersError.AdminToken {
 		errors = append(errors, "'adminToken' missing")
 	}
 
 	return strings.Join(errors, ", ")
 }
 
-func (a *addUserParameters) UnmarshalJSON(bytes []byte) error {
+func (parameters *addUserParameters) UnmarshalJSON(bytes []byte) error {
 	var s struct {
 		Username   null.String
 		Name       null.String
@@ -144,41 +144,41 @@ func (a *addUserParameters) UnmarshalJSON(bytes []byte) error {
 		return err
 	}
 
-	a.Username = s.Username
-	a.Name = s.Name
-	a.AdminToken = s.AdminToken
+	parameters.Username = s.Username
+	parameters.Name = s.Name
+	parameters.AdminToken = s.AdminToken
 
-	if !a.Username.Valid || !a.Name.Valid || a.AdminToken.ID() == 0 {
+	if !parameters.Username.Valid || !parameters.Name.Valid || parameters.AdminToken.ID() == 0 {
 		return addUserParametersError{
-			Username:   !a.Username.Valid,
-			Name:       !a.Name.Valid,
-			AdminToken: a.AdminToken.ID() == 0,
+			Username:   !parameters.Username.Valid,
+			Name:       !parameters.Name.Valid,
+			AdminToken: parameters.AdminToken.ID() == 0,
 		}
 	}
 
 	return nil
 }
 
-func handleAddUser(db *pg.DB, adminScope string) http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
+func handleAddUser(database *pg.DB, adminScope string) http.HandlerFunc {
+	return func(writer http.ResponseWriter, request *http.Request) {
 		parameters := addUserParameters{}
-		if err := json.NewDecoder(r.Body).Decode(&parameters); err != nil {
-			_, _ = fmt.Fprintf(w, "Error decoding parameters for adding user: %s", err.Error())
+		if err := json.NewDecoder(request.Body).Decode(&parameters); err != nil {
+			_, _ = fmt.Fprintf(writer, "Error decoding parameters for adding user: %s", err.Error())
 
 			return
 		}
 
-		u := User{
+		user := User{
 			Id:       uuid.New(),
 			Name:     parameters.Name.String,
 			Username: parameters.Username.String,
 			Tokens:   nil,
 		}
 
-		context := db.Context()
-		if err := db.RunInTransaction(context, func(tx *pg.Tx) error {
+		context := database.Context()
+		if err := database.RunInTransaction(context, func(_ *pg.Tx) error {
 			adminTokens := make([]Token, 0)
-			adminTokenExists, err := db.Model(&adminTokens).Where(
+			adminTokenExists, err := database.Model(&adminTokens).Where(
 				"id = ? AND scope = '?'", parameters.AdminToken, adminScope,
 			).Exists()
 			if err != nil {
@@ -189,7 +189,7 @@ func handleAddUser(db *pg.DB, adminScope string) http.HandlerFunc {
 				return fmt.Errorf("user does not have privileges for scope '%s'", adminScope)
 			}
 
-			_, err = db.Model(&u).Insert()
+			_, err = database.Model(&user).Insert()
 			if err != nil {
 				fmt.Printf("Error inserting user: %s", err.Error())
 
@@ -198,78 +198,78 @@ func handleAddUser(db *pg.DB, adminScope string) http.HandlerFunc {
 
 			return nil
 		}); err != nil {
-			_, _ = fmt.Fprintf(w, "Error running transaction: %s", err.Error())
+			_, _ = fmt.Fprintf(writer, "Error running transaction: %s", err.Error())
 		}
 
-		_ = json.NewEncoder(w).Encode(u)
+		_ = json.NewEncoder(writer).Encode(user)
 	}
 }
 
-func handleGetUser(db *pg.DB, adminScope string) http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-		adminToken := getAdminToken(r)
-		hasAdminScope := tokenHasScope(db, adminToken, adminScope)
+func handleGetUser(database *pg.DB, adminScope string) http.HandlerFunc {
+	return func(writer http.ResponseWriter, request *http.Request) {
+		adminToken := getAdminToken(request)
+		hasAdminScope := tokenHasScope(database, adminToken, adminScope)
 		if !hasAdminScope {
-			_, _ = fmt.Fprintf(w, "Incorrect or no authorization token given for this resource: %s", adminToken)
+			_, _ = fmt.Fprintf(writer, "Incorrect or no authorization token given for this resource: %s", adminToken)
 
 			return
 		}
 
 		id := new(uuid.UUID)
-		parameters := getParameters(r)
+		parameters := getParameters(request)
 		if parameters == nil {
-			_, _ = fmt.Fprint(w, "No `UserId` given as path parameter")
+			_, _ = fmt.Fprint(writer, "No `UserId` given as path parameter")
 
 			return
 		}
 
 		if err := id.Scan(parameters.ByName("Id")); err != nil {
-			_, _ = fmt.Fprintf(w, "Unable to get `Id` from parameter: %s", err.Error())
+			_, _ = fmt.Fprintf(writer, "Unable to get `Id` from parameter: %s", err.Error())
 
 			return
 		}
 
-		u := User{}
-		if err := db.Model(&u).Where("id = ?", id).Relation("Tokens").Select(); err != nil {
-			_, _ = fmt.Fprintf(w, "Error getting user: %s", err.Error())
+		user := User{}
+		if err := database.Model(&user).Where("id = ?", id).Relation("Tokens").Select(); err != nil {
+			_, _ = fmt.Fprintf(writer, "Error getting user: %s", err.Error())
 
 			return
 		}
 
-		_ = json.NewEncoder(w).Encode(u)
+		_ = json.NewEncoder(writer).Encode(user)
 	}
 }
 
-func handleGetUsers(db *pg.DB, adminScope string) http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-		adminToken := getAdminToken(r)
-		hasAdminScope := tokenHasScope(db, adminToken, adminScope)
+func handleGetUsers(database *pg.DB, adminScope string) http.HandlerFunc {
+	return func(writer http.ResponseWriter, request *http.Request) {
+		adminToken := getAdminToken(request)
+		hasAdminScope := tokenHasScope(database, adminToken, adminScope)
 		if !hasAdminScope {
-			_, _ = fmt.Fprintf(w, "Incorrect or no authorization token given for this resource: %s", adminToken)
+			_, _ = fmt.Fprintf(writer, "Incorrect or no authorization token given for this resource: %s", adminToken)
 
 			return
 		}
 
 		users := make([]User, 0)
-		if err := db.Model(&users).Relation("Tokens").Select(); err != nil {
-			_, _ = fmt.Fprintf(w, "Error getting users: %s", err.Error())
+		if err := database.Model(&users).Relation("Tokens").Select(); err != nil {
+			_, _ = fmt.Fprintf(writer, "Error getting users: %s", err.Error())
 
 			return
 		}
 
-		if err := json.NewEncoder(w).Encode(users); err != nil {
+		if err := json.NewEncoder(writer).Encode(users); err != nil {
 			fmt.Printf("Unable to write user list to socket: %s", err.Error())
 		}
 	}
 }
 
-func tokenHasScope(db *pg.DB, token string, scope string) bool {
+func tokenHasScope(database *pg.DB, token string, scope string) bool {
 	tokenAsUuid := uuid.UUID{}
 	if err := tokenAsUuid.Scan(token); err != nil {
 		return false
 	}
 
-	exists, err := db.Model((*Token)(nil)).Where("id = ? AND scope = ?", tokenAsUuid, scope).Exists()
+	exists, err := database.Model((*Token)(nil)).Where("id = ? AND scope = ?", tokenAsUuid, scope).Exists()
 	if err != nil {
 		return false
 	}
@@ -277,8 +277,8 @@ func tokenHasScope(db *pg.DB, token string, scope string) bool {
 	return exists
 }
 
-func getAdminToken(r *http.Request) string {
-	authorizationHeader := r.Header.Get("Authorization")
+func getAdminToken(request *http.Request) string {
+	authorizationHeader := request.Header.Get("Authorization")
 	if authorizationHeader == "" || !strings.HasPrefix(authorizationHeader, "Bearer ") {
 		return ""
 	} else {

@@ -18,11 +18,11 @@ func connectToDatabase(options DatabaseOptions) *pg.DB {
 	})
 }
 
-func createSchema(db *pg.DB) error {
+func createSchema(database *pg.DB) error {
 	models := []interface{}{(*User)(nil), (*Token)(nil)}
 
 	for _, m := range models {
-		err := db.Model(m).CreateTable(&orm.CreateTableOptions{Temp: false, IfNotExists: true})
+		err := database.Model(m).CreateTable(&orm.CreateTableOptions{Temp: false, IfNotExists: true})
 		if err != nil {
 			return err
 		}

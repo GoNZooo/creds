@@ -12,8 +12,8 @@ type Server struct {
 	router *httprouter.Router
 }
 
-func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	s.router.ServeHTTP(w, r)
+func (server *Server) ServeHTTP(writer http.ResponseWriter, request *http.Request) {
+	server.router.ServeHTTP(writer, request)
 }
 
 type DatabaseOptions struct {
@@ -24,20 +24,20 @@ type DatabaseOptions struct {
 	Password string
 }
 
-func (s *Server) Serve(port int, databaseOptions DatabaseOptions, adminScope string) {
-	if s.router == nil {
-		s.router = httprouter.New()
+func (server *Server) Serve(port int, databaseOptions DatabaseOptions, adminScope string) {
+	if server.router == nil {
+		server.router = httprouter.New()
 	}
 
-	db := connectToDatabase(databaseOptions)
-	err := createSchema(db)
+	database := connectToDatabase(databaseOptions)
+	err := createSchema(database)
 	if err != nil {
-		log.Panicf("`createSchema` error: %s", err.Error())
+		log.Panicf("`createSchema` error: %server", err.Error())
 	}
 
-	s.setupRoutes(db, adminScope)
+	server.setupRoutes(database, adminScope)
 
-	if err := http.ListenAndServe(fmt.Sprintf(":%d", port), s); err != nil {
-		log.Panicf("Error trying to start server: %s", err.Error())
+	if err := http.ListenAndServe(fmt.Sprintf(":%d", port), server); err != nil {
+		log.Panicf("Error trying to start server: %server", err.Error())
 	}
 }

@@ -6,15 +6,15 @@ import (
 	"github.com/go-pg/pg/v10"
 )
 
-func (s *Server) setupRoutes(db *pg.DB, adminScope string) {
+func (server *Server) setupRoutes(database *pg.DB, adminScope string) {
 	routes := []routeSpecification{
-		post{"/tokens", handleAddToken(db, adminScope)},
-		post{"/users", handleAddUser(db, adminScope)},
-		get{"/users", handleGetUsers(db, adminScope)},
-		get{"/user/:Id", handleGetUser(db, adminScope)},
+		post{"/tokens", handleAddToken(database, adminScope)},
+		post{"/users", handleAddUser(database, adminScope)},
+		get{"/users", handleGetUsers(database, adminScope)},
+		get{"/user/:Id", handleGetUser(database, adminScope)},
 	}
 
-	s.addRoutes(routes)
+	server.addRoutes(routes)
 }
 
 type post struct {
@@ -22,11 +22,11 @@ type post struct {
 	handler http.HandlerFunc
 }
 
-func (p post) toRouteData() routeData {
+func (post post) toRouteData() routeData {
 	return routeData{
 		method:  "POST",
-		path:    p.path,
-		handler: p.handler,
+		path:    post.path,
+		handler: post.handler,
 	}
 }
 
@@ -35,11 +35,11 @@ type get struct {
 	handler http.HandlerFunc
 }
 
-func (g get) toRouteData() routeData {
+func (get get) toRouteData() routeData {
 	return routeData{
 		method:  "GET",
-		path:    g.path,
-		handler: g.handler,
+		path:    get.path,
+		handler: get.handler,
 	}
 }
 
@@ -53,13 +53,13 @@ type routeSpecification interface {
 	toRouteData() routeData
 }
 
-func (s *Server) addRoutes(routes []routeSpecification) {
+func (server *Server) addRoutes(routes []routeSpecification) {
 	for _, r := range routes {
 		rd := r.toRouteData()
-		s.addRouteData(rd)
+		server.addRouteData(rd)
 	}
 }
 
-func (s *Server) addRouteData(rd routeData) {
-	s.router.HandlerFunc(rd.method, rd.path, rd.handler)
+func (server *Server) addRouteData(rd routeData) {
+	server.router.HandlerFunc(rd.method, rd.path, rd.handler)
 }

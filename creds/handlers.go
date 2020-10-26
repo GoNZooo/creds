@@ -89,6 +89,10 @@ func handleAddToken(database *pg.DB, adminScope string) http.HandlerFunc {
 
 			return
 		}
+
+		if err := json.NewEncoder(writer).Encode(tokenId); err != nil {
+			fmt.Printf("Couldn't write token '%s' for request", tokenId)
+		}
 	}
 }
 

@@ -160,33 +160,21 @@ func handleAddUser(database *pg.DB, adminScope string) http.HandlerFunc {
 			return
 		}
 
-		user := User{
-			Id:       uuid.New(),
-			Name:     parameters.Name.String,
-			Username: parameters.Username.String,
-			Tokens:   nil,
+		hasAdminScope := tokenHasScope(database, parameters.AdminToken, adminScope)
+		if !hasAdminScope {
+			fmt.Printf("user does not have privileges for scope '%s'", adminScope)
+
+			return
 		}
 
-		context := database.Context()
-		if err := database.RunInTransaction(context, func(_ *pg.Tx) error {
-			hasAdminScope := tokenHasScope(database, parameters.AdminToken, adminScope)
-			if !hasAdminScope {
-				return fmt.Errorf("user does not have privileges for scope '%s'", adminScope)
-			}
+		userId, err := insertUser(database, parameters.Name.String, parameters.Username.String)
+		if err != nil {
+			fmt.Printf("Error inserting user: %s", err.Error())
 
-			_, err = database.Model(&user).Insert()
-			if err != nil {
-				fmt.Printf("Error inserting user: %s", err.Error())
-
-				return err
-			}
-
-			return nil
-		}); err != nil {
-			_, _ = fmt.Fprintf(writer, "Error running transaction: %s", err.Error())
+			return
 		}
 
-		_ = json.NewEncoder(writer).Encode(user)
+		_ = json.NewEncoder(writer).Encode(userId)
 	}
 }
 

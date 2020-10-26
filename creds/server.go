@@ -5,6 +5,7 @@ import (
 	"log"
 	"net/http"
 
+	"github.com/go-pg/pg/v10/orm"
 	"github.com/julienschmidt/httprouter"
 )
 
@@ -30,7 +31,7 @@ func (server *Server) Serve(port int, databaseOptions DatabaseOptions, adminScop
 	}
 
 	database := connectToDatabase(databaseOptions)
-	err := createSchema(database)
+	err := createSchema(database, &orm.CreateTableOptions{Temp: false, IfNotExists: true})
 	if err != nil {
 		log.Panicf("`createSchema` error: %server", err.Error())
 	}

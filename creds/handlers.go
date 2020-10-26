@@ -206,8 +206,16 @@ func handleAddUser(db *pg.DB, adminScope string) http.HandlerFunc {
 	}
 }
 
-func handleGetUser(db *pg.DB, _ string) http.HandlerFunc {
+func handleGetUser(db *pg.DB, adminScope string) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
+		adminToken := getAdminToken(r)
+		hasAdminScope := tokenHasScope(db, adminToken, adminScope)
+		if !hasAdminScope {
+			_, _ = fmt.Fprintf(w, "Incorrect or no authorization token given for this resource: %s", adminToken)
+
+			return
+		}
+
 		id := new(uuid.UUID)
 		parameters := getParameters(r)
 		if parameters == nil {

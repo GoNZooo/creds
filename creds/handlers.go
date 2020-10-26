@@ -42,19 +42,19 @@ func (parametersError addTokenParametersError) Error() string {
 }
 
 func (parameters *addTokenParameters) UnmarshalJSON(bytes []byte) error {
-	var s struct {
+	var toUnmarshal struct {
 		UserId      uuid.UUID
 		Scope       null.String
 		AdminUserId uuid.UUID
 		AdminToken  uuid.UUID
 	}
-	if err := json.Unmarshal(bytes, &s); err != nil {
+	if err := json.Unmarshal(bytes, &toUnmarshal); err != nil {
 		return err
 	}
 
-	parameters.UserId = s.UserId
-	parameters.AdminToken = s.AdminToken
-	parameters.Scope = s.Scope
+	parameters.UserId = toUnmarshal.UserId
+	parameters.AdminToken = toUnmarshal.AdminToken
+	parameters.Scope = toUnmarshal.Scope
 
 	if parameters.UserId.ID() == 0 || !parameters.Scope.Valid || parameters.AdminToken.ID() == 0 {
 		return addTokenParametersError{
@@ -135,18 +135,18 @@ func (parametersError addUserParametersError) Error() string {
 }
 
 func (parameters *addUserParameters) UnmarshalJSON(bytes []byte) error {
-	var s struct {
+	var toUnmarshal struct {
 		Username   null.String
 		Name       null.String
 		AdminToken uuid.UUID
 	}
-	if err := json.Unmarshal(bytes, &s); err != nil {
+	if err := json.Unmarshal(bytes, &toUnmarshal); err != nil {
 		return err
 	}
 
-	parameters.Username = s.Username
-	parameters.Name = s.Name
-	parameters.AdminToken = s.AdminToken
+	parameters.Username = toUnmarshal.Username
+	parameters.Name = toUnmarshal.Name
+	parameters.AdminToken = toUnmarshal.AdminToken
 
 	if !parameters.Username.Valid || !parameters.Name.Valid || parameters.AdminToken.ID() == 0 {
 		return addUserParametersError{

@@ -76,14 +76,8 @@ func handleAddToken(database *pg.DB, adminScope string) http.HandlerFunc {
 			return
 		}
 
-		adminToken := Token{}
-		if err := database.Model(&adminToken).Where("id = ?", parameters.AdminToken).Select(); err != nil {
-			_, _ = fmt.Fprintf(writer, "Unable to get admin token: %s", err.Error())
-
-			return
-		}
-
-		if adminToken.Scope != adminScope {
+		hasAdminScope := tokenHasScope(database, parameters.AdminToken, adminScope)
+		if !hasAdminScope {
 			_, _ = fmt.Fprint(writer, "Insufficient privileges for adding tokens")
 
 			return
@@ -177,15 +171,8 @@ func handleAddUser(database *pg.DB, adminScope string) http.HandlerFunc {
 
 		context := database.Context()
 		if err := database.RunInTransaction(context, func(_ *pg.Tx) error {
-			adminTokens := make([]Token, 0)
-			adminTokenExists, err := database.Model(&adminTokens).Where(
-				"id = ? AND scope = '?'", parameters.AdminToken, adminScope,
-			).Exists()
-			if err != nil {
-				return err
-			}
-
-			if !adminTokenExists {
+			hasAdminScope := tokenHasScope(database, parameters.AdminToken, adminScope)
+			if !hasAdminScope {
 				return fmt.Errorf("user does not have privileges for scope '%s'", adminScope)
 			}
 
@@ -207,7 +194,7 @@ func handleAddUser(database *pg.DB, adminScope string) http.HandlerFunc {
 
 func handleGetUser(database *pg.DB, adminScope string) http.HandlerFunc {
 	return func(writer http.ResponseWriter, request *http.Request) {
-		adminToken := getAdminToken(request)
+		adminToken := getAdminTokenId(request)
 		hasAdminScope := tokenHasScope(database, adminToken, adminScope)
 		if !hasAdminScope {
 			_, _ = fmt.Fprintf(writer, "Incorrect or no authorization token given for this resource: %s", adminToken)
@@ -242,7 +229,7 @@ func handleGetUser(database *pg.DB, adminScope string) http.HandlerFunc {
 
 func handleGetUsers(database *pg.DB, adminScope string) http.HandlerFunc {
 	return func(writer http.ResponseWriter, request *http.Request) {
-		adminToken := getAdminToken(request)
+		adminToken := getAdminTokenId(request)
 		hasAdminScope := tokenHasScope(database, adminToken, adminScope)
 		if !hasAdminScope {
 			_, _ = fmt.Fprintf(writer, "Incorrect or no authorization token given for this resource: %s", adminToken)
@@ -263,13 +250,8 @@ func handleGetUsers(database *pg.DB, adminScope string) http.HandlerFunc {
 	}
 }
 
-func tokenHasScope(database *pg.DB, token string, scope string) bool {
-	tokenAsUuid := uuid.UUID{}
-	if err := tokenAsUuid.Scan(token); err != nil {
-		return false
-	}
-
-	exists, err := database.Model((*Token)(nil)).Where("id = ? AND scope = ?", tokenAsUuid, scope).Exists()
+func tokenHasScope(database *pg.DB, tokenId uuid.UUID, scope string) bool {
+	exists, err := database.Model((*Token)(nil)).Where("id = ? AND scope = ?", tokenId, scope).Exists()
 	if err != nil {
 		return false
 	}
@@ -277,11 +259,16 @@ func tokenHasScope(database *pg.DB, token string, scope string) bool {
 	return exists
 }
 
-func getAdminToken(request *http.Request) string {
+func getAdminTokenId(request *http.Request) uuid.UUID {
 	authorizationHeader := request.Header.Get("Authorization")
 	if authorizationHeader == "" || !strings.HasPrefix(authorizationHeader, "Bearer ") {
-		return ""
+		return uuid.Nil
 	} else {
-		return strings.Split(authorizationHeader, " ")[1]
+		id := uuid.UUID{}
+		if err := id.Scan(strings.Split(authorizationHeader, " ")[1]); err != nil {
+			return uuid.Nil
+		}
+
+		return id
 	}
 }

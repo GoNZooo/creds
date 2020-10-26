@@ -83,14 +83,8 @@ func handleAddToken(database *pg.DB, adminScope string) http.HandlerFunc {
 			return
 		}
 
-		token := Token{
-			Id:     uuid.New(),
-			Scope:  parameters.Scope.String,
-			UserId: parameters.UserId,
-			User:   nil,
-		}
-
-		if _, err := database.Model(&token).Insert(); err != nil {
+		tokenId, err := insertToken(database, parameters.UserId, parameters.Scope.String)
+		if err != nil {
 			_, _ = fmt.Fprintf(writer, "Unable to create token: %s", err.Error())
 
 			return

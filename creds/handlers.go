@@ -233,8 +233,16 @@ func handleGetUser(db *pg.DB, _ string) http.HandlerFunc {
 	}
 }
 
-func handleGetUsers(db *pg.DB, _ string) http.HandlerFunc {
+func handleGetUsers(db *pg.DB, adminScope string) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
+		adminToken := getAdminToken(r)
+		hasAdminScope := tokenHasScope(db, adminToken, adminScope)
+		if !hasAdminScope {
+			_, _ = fmt.Fprintf(w, "Incorrect or no authorization token given for this resource: %s", adminToken)
+
+			return
+		}
+
 		users := make([]User, 0)
 		if err := db.Model(&users).Relation("Tokens").Select(); err != nil {
 			_, _ = fmt.Fprintf(w, "Error getting users: %s", err.Error())
@@ -245,5 +253,28 @@ func handleGetUsers(db *pg.DB, _ string) http.HandlerFunc {
 		if err := json.NewEncoder(w).Encode(users); err != nil {
 			fmt.Printf("Unable to write user list to socket: %s", err.Error())
 		}
+	}
+}
+
+func tokenHasScope(db *pg.DB, token string, scope string) bool {
+	tokenAsUuid := uuid.UUID{}
+	if err := tokenAsUuid.Scan(token); err != nil {
+		return false
+	}
+
+	exists, err := db.Model((*Token)(nil)).Where("id = ? AND scope = ?", tokenAsUuid, scope).Exists()
+	if err != nil {
+		return false
+	}
+
+	return exists
+}
+
+func getAdminToken(r *http.Request) string {
+	authorizationHeader := r.Header.Get("Authorization")
+	if authorizationHeader == "" || !strings.HasPrefix(authorizationHeader, "Bearer ") {
+		return ""
+	} else {
+		return strings.Split(authorizationHeader, " ")[1]
 	}
 }

@@ -42,6 +42,9 @@ func setUp() setUpData {
 	}
 
 	adminToken, err := insertToken(database, adminId, adminScope)
+	if err != nil {
+		log.Panicf("Unable to create admin token: %s", err.Error())
+	}
 
 	return setUpData{adminId: adminId, adminToken: adminToken, database: database, adminScope: adminScope}
 }

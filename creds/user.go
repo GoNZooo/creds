@@ -27,3 +27,13 @@ func insertUser(database *pg.DB, name string, username string) (uuid.UUID, error
 
 	return id, nil
 }
+
+func getUserById(database *pg.DB, id uuid.UUID) (*User, error) {
+	user := &User{Id: id}
+
+	if err := database.Model(user).WherePK().Select(); err != nil {
+		return nil, err
+	}
+
+	return user, nil
+}

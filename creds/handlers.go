@@ -8,7 +8,6 @@ import (
 
 	"github.com/go-pg/pg/v10"
 	"github.com/google/uuid"
-	"github.com/julienschmidt/httprouter"
 	"gopkg.in/guregu/null.v4"
 )
 
@@ -224,8 +223,8 @@ func handleGetUser(db *pg.DB, adminScope string) http.HandlerFunc {
 			return
 		}
 
-		if err := id.Scan(r.Context().Value(httprouter.ParamsKey).(httprouter.Params).ByName("Id")); err != nil {
-			_, _ = fmt.Fprintf(w, "Unable to get `UserId` from parameter: %s", err.Error())
+		if err := id.Scan(parameters.ByName("Id")); err != nil {
+			_, _ = fmt.Fprintf(w, "Unable to get `Id` from parameter: %s", err.Error())
 
 			return
 		}

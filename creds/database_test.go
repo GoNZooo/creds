@@ -6,7 +6,7 @@ import (
 )
 
 func TestAddAndGetUser(t *testing.T) {
-	d := initializeTestDatabase()
+	d := initializeTestData(nil)
 
 	name := "TestUser"
 	username := "TestUser"
@@ -28,7 +28,7 @@ func TestAddAndGetUser(t *testing.T) {
 }
 
 func TestAddAndGetToken(t *testing.T) {
-	d := initializeTestDatabase()
+	d := initializeTestData(nil)
 
 	name := "TestUserForToken"
 	username := "TestUserForToken"

@@ -5,7 +5,7 @@ import (
 	"log"
 	"net/http"
 
-	"github.com/go-pg/pg/v10/orm"
+	"github.com/go-pg/pg/v10"
 	"github.com/julienschmidt/httprouter"
 )
 

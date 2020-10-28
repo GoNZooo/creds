@@ -9,7 +9,7 @@ import (
 	"github.com/google/uuid"
 )
 
-func connectToDatabase(options DatabaseOptions) *pg.DB {
+func ConnectToDatabase(options DatabaseOptions) *pg.DB {
 	address := fmt.Sprintf("%s:%d", options.Host, options.Port)
 
 	return pg.Connect(&pg.Options{
@@ -20,7 +20,7 @@ func connectToDatabase(options DatabaseOptions) *pg.DB {
 	})
 }
 
-func createSchema(database *pg.DB, options *orm.CreateTableOptions) error {
+func CreateSchema(database *pg.DB, options *orm.CreateTableOptions) error {
 	models := []interface{}{(*User)(nil), (*Token)(nil)}
 
 	for _, m := range models {
@@ -40,7 +40,7 @@ type setUpData struct {
 	adminScope string
 }
 
-func initializeTestDatabase() setUpData {
+func initializeTestData(database *pg.DB) setUpData {
 	databaseOptions := DatabaseOptions{
 		Host:     GetRequiredEnvironmentVariable("TEST_DATABASE_HOST"),
 		Port:     GetRequiredEnvironmentIntegerEnvironmentVariable("TEST_DATABASE_PORT"),
@@ -50,7 +50,9 @@ func initializeTestDatabase() setUpData {
 	}
 
 	adminScope := GetRequiredEnvironmentVariable("TEST_ADMIN_SCOPE")
-	database := connectToDatabase(databaseOptions)
+	if database == nil {
+		database = ConnectToDatabase(databaseOptions)
+	}
 	models := []interface{}{(*User)(nil), (*Token)(nil)}
 	for _, model := range models {
 		if err := database.Model(model).CreateTable(

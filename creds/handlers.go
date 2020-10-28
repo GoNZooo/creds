@@ -155,21 +155,24 @@ func handleAddUser(database *pg.DB, adminScope string) http.HandlerFunc {
 	return func(writer http.ResponseWriter, request *http.Request) {
 		parameters := addUserParameters{}
 		if err := json.NewDecoder(request.Body).Decode(&parameters); err != nil {
-			_, _ = fmt.Fprintf(writer, "Error decoding parameters for adding user: %s", err.Error())
+			response := fmt.Sprintf("Error decoding parameters for adding user: %s", err.Error())
+			http.Error(writer, response, http.StatusBadRequest)
 
 			return
 		}
 
 		hasAdminScope := tokenHasScope(database, parameters.AdminToken, adminScope)
 		if !hasAdminScope {
-			fmt.Printf("user does not have privileges for scope '%s'", adminScope)
+			response := fmt.Sprintf("user does not have privileges for scope '%s'", adminScope)
+			http.Error(writer, response, http.StatusUnauthorized)
 
 			return
 		}
 
 		userId, err := insertUser(database, parameters.Name.String, parameters.Username.String)
 		if err != nil {
-			fmt.Printf("Error inserting user: %s", err.Error())
+			response := fmt.Sprintf("Error inserting user: %s", err.Error())
+			http.Error(writer, response, http.StatusInternalServerError)
 
 			return
 		}

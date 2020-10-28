@@ -211,15 +211,23 @@ func handleGetUser(database *pg.DB, adminScope string) http.HandlerFunc {
 			return
 		}
 
-		user := User{}
-		if err := database.Model(&user).Where("id = ?", id).Relation("Tokens").Select(); err != nil {
+		users := make([]User, 0)
+		if err := database.Model(&users).Where("id = ?", id).Relation("Tokens").Select(); err != nil {
+			fmt.Printf("err: %+v", err)
 			response := fmt.Sprintf("Error getting user: %s", err.Error())
 			http.Error(writer, response, http.StatusInternalServerError)
 
 			return
 		}
 
-		_ = json.NewEncoder(writer).Encode(user)
+		if len(users) == 0 {
+			response := fmt.Sprintf("User with id '%s' not found", id)
+			http.Error(writer, response, http.StatusNotFound)
+
+			return
+		}
+
+		_ = json.NewEncoder(writer).Encode(users[0])
 	}
 }
 

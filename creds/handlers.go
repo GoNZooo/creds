@@ -213,7 +213,6 @@ func handleGetUser(database *pg.DB, adminScope string) http.HandlerFunc {
 
 		users := make([]User, 0)
 		if err := database.Model(&users).Where("id = ?", id).Relation("Tokens").Select(); err != nil {
-			fmt.Printf("err: %+v", err)
 			response := fmt.Sprintf("Error getting user: %s", err.Error())
 			http.Error(writer, response, http.StatusInternalServerError)
 

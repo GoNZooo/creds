@@ -4,9 +4,10 @@ import (
 	"net/http"
 
 	"github.com/go-pg/pg/v10"
+	"github.com/julienschmidt/httprouter"
 )
 
-func (server *Server) setupRoutes(database *pg.DB, adminScope string) {
+func setupRoutes(router *httprouter.Router, database *pg.DB, adminScope string) {
 	routes := []routeSpecification{
 		post{"/tokens", handleAddToken(database, adminScope)},
 		post{"/users", handleAddUser(database, adminScope)},
@@ -14,7 +15,7 @@ func (server *Server) setupRoutes(database *pg.DB, adminScope string) {
 		get{"/user/:Id", handleGetUser(database, adminScope)},
 	}
 
-	server.addRoutes(routes)
+	addRoutes(router, routes)
 }
 
 type post struct {
@@ -53,13 +54,13 @@ type routeSpecification interface {
 	toRouteData() routeData
 }
 
-func (server *Server) addRoutes(routes []routeSpecification) {
+func addRoutes(router *httprouter.Router, routes []routeSpecification) {
 	for _, r := range routes {
 		rd := r.toRouteData()
-		server.addRouteData(rd)
+		addRouteData(router, rd)
 	}
 }
 
-func (server *Server) addRouteData(rd routeData) {
-	server.router.HandlerFunc(rd.method, rd.path, rd.handler)
+func addRouteData(router *httprouter.Router, rd routeData) {
+	router.HandlerFunc(rd.method, rd.path, rd.handler)
 }

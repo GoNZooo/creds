@@ -183,7 +183,8 @@ func handleGetUser(database *pg.DB, adminScope string) http.HandlerFunc {
 		adminToken := getAdminTokenId(request)
 		hasAdminScope := tokenHasScope(database, adminToken, adminScope)
 		if !hasAdminScope {
-			_, _ = fmt.Fprintf(writer, "Incorrect or no authorization token given for this resource: %s", adminToken)
+			response := fmt.Sprintf("Incorrect or no authorization token given for this resource: %s", adminToken)
+			http.Error(writer, response, http.StatusUnauthorized)
 
 			return
 		}
@@ -191,20 +192,23 @@ func handleGetUser(database *pg.DB, adminScope string) http.HandlerFunc {
 		id := new(uuid.UUID)
 		parameters := getParameters(request)
 		if parameters == nil {
-			_, _ = fmt.Fprint(writer, "No `UserId` given as path parameter")
+			response := "No `UserId` given as path parameter"
+			http.Error(writer, response, http.StatusBadRequest)
 
 			return
 		}
 
 		if err := id.Scan(parameters.ByName("Id")); err != nil {
-			_, _ = fmt.Fprintf(writer, "Unable to get `Id` from parameter: %s", err.Error())
+			response := fmt.Sprintf("Unable to get `Id` from parameter: %s", err.Error())
+			http.Error(writer, response, http.StatusBadRequest)
 
 			return
 		}
 
 		user := User{}
 		if err := database.Model(&user).Where("id = ?", id).Relation("Tokens").Select(); err != nil {
-			_, _ = fmt.Fprintf(writer, "Error getting user: %s", err.Error())
+			response := fmt.Sprintf("Error getting user: %s", err.Error())
+			http.Error(writer, response, http.StatusInternalServerError)
 
 			return
 		}

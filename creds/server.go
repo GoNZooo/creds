@@ -25,15 +25,9 @@ type DatabaseOptions struct {
 	Password string
 }
 
-func (server *Server) Serve(port int, databaseOptions DatabaseOptions, adminScope string) {
+func (server *Server) Serve(port int, database *pg.DB, adminScope string) {
 	if server.router == nil {
 		server.router = httprouter.New()
-	}
-
-	database := connectToDatabase(databaseOptions)
-	err := createSchema(database, &orm.CreateTableOptions{Temp: false, IfNotExists: true})
-	if err != nil {
-		log.Panicf("`createSchema` error: %server", err.Error())
 	}
 
 	server.setupRoutes(database, adminScope)

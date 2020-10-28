@@ -1,6 +1,10 @@
 package main
 
 import (
+	"log"
+
+	"github.com/go-pg/pg/v10/orm"
+
 	"creds/creds"
 )
 
@@ -16,7 +20,12 @@ func main() {
 	}
 
 	adminScope := creds.GetRequiredEnvironmentVariable("ADMIN_SCOPE")
+	database := creds.ConnectToDatabase(databaseOptions)
+	err := creds.CreateSchema(database, &orm.CreateTableOptions{Temp: false, IfNotExists: true})
+	if err != nil {
+		log.Panicf("`CreateSchema` error: %server", err.Error())
+	}
 
 	server := creds.Server{}
-	server.Serve(int(port), databaseOptions, adminScope)
+	server.Serve(port, database, adminScope)
 }

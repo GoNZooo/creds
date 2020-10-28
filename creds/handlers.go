@@ -71,21 +71,24 @@ func handleAddToken(database *pg.DB, adminScope string) http.HandlerFunc {
 	return func(writer http.ResponseWriter, request *http.Request) {
 		var parameters addTokenParameters
 		if err := json.NewDecoder(request.Body).Decode(&parameters); err != nil {
-			_, _ = fmt.Fprintf(writer, "Error decoding parameters for adding token: %s", err.Error())
+			response := fmt.Sprintf("Error decoding parameters for adding token: %s", err.Error())
+			http.Error(writer, response, http.StatusBadRequest)
 
 			return
 		}
 
 		hasAdminScope := tokenHasScope(database, parameters.AdminToken, adminScope)
 		if !hasAdminScope {
-			_, _ = fmt.Fprint(writer, "Insufficient privileges for adding tokens")
+			response := "Insufficient privileges for adding tokens"
+			http.Error(writer, response, http.StatusBadRequest)
 
 			return
 		}
 
 		tokenId, err := insertToken(database, parameters.UserId, parameters.Scope.String)
 		if err != nil {
-			_, _ = fmt.Fprintf(writer, "Unable to create token: %s", err.Error())
+			response := fmt.Sprintf("Unable to create token: %s", err.Error())
+			http.Error(writer, response, http.StatusBadRequest)
 
 			return
 		}

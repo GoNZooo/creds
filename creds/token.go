@@ -12,12 +12,12 @@ type Token struct {
 	User   *User     `json:"user" pg:"rel:has-one"`
 }
 
-func insertToken(database *pg.DB, userId uuid.UUID, scope string) (uuid.UUID, error) {
-	id := uuid.New()
+func insertToken(database *pg.DB, id uuid.UUID, scope string) (uuid.UUID, error) {
+	tokenId := uuid.New()
 	token := Token{
-		Id:     id,
+		Id:     tokenId,
 		Scope:  scope,
-		UserId: userId,
+		UserId: id,
 		User:   nil,
 	}
 
@@ -25,5 +25,5 @@ func insertToken(database *pg.DB, userId uuid.UUID, scope string) (uuid.UUID, er
 		return uuid.Nil, err
 	}
 
-	return id, nil
+	return tokenId, nil
 }

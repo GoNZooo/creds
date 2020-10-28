@@ -36,6 +36,7 @@ func TestGetUsers(t *testing.T) {
 		log.Panicf("Unexpected user list length: %d", len(users))
 	}
 
+	// Bad token test
 	recorder = httptest.NewRecorder()
 	request, err = http.NewRequest("GET", "/users", nil)
 	if request == nil {
@@ -50,6 +51,7 @@ func TestGetUsers(t *testing.T) {
 		log.Panicf("Bad token does not return unauthorized status code: %d", recorder.Code)
 	}
 
+	// No token test
 	recorder = httptest.NewRecorder()
 	request, err = http.NewRequest("GET", "/users", nil)
 	if request == nil {

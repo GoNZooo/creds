@@ -218,14 +218,16 @@ func handleGetUsers(database *pg.DB, adminScope string) http.HandlerFunc {
 		adminToken := getAdminTokenId(request)
 		hasAdminScope := tokenHasScope(database, adminToken, adminScope)
 		if !hasAdminScope {
-			_, _ = fmt.Fprintf(writer, "Incorrect or no authorization token given for this resource: %s", adminToken)
+			response := fmt.Sprintf("Incorrect or no authorization token given for this resource: %s", adminToken)
+			http.Error(writer, response, http.StatusUnauthorized)
 
 			return
 		}
 
 		users := make([]User, 0)
 		if err := database.Model(&users).Relation("Tokens").Select(); err != nil {
-			_, _ = fmt.Fprintf(writer, "Error getting users: %s", err.Error())
+			response := fmt.Sprintf("Error getting users")
+			http.Error(writer, response, http.StatusInternalServerError)
 
 			return
 		}

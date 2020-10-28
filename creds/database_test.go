@@ -16,7 +16,7 @@ type setUpData struct {
 	adminScope string
 }
 
-func setUp() setUpData {
+func initializeTestDatabase() setUpData {
 	databaseOptions := DatabaseOptions{
 		Host:     GetRequiredEnvironmentVariable("TEST_DATABASE_HOST"),
 		Port:     GetRequiredEnvironmentIntegerEnvironmentVariable("TEST_DATABASE_PORT"),
@@ -50,7 +50,7 @@ func setUp() setUpData {
 }
 
 func TestAddAndGetUser(t *testing.T) {
-	d := setUp()
+	d := initializeTestDatabase()
 
 	name := "TestUser"
 	username := "TestUser"
@@ -72,7 +72,7 @@ func TestAddAndGetUser(t *testing.T) {
 }
 
 func TestAddAndGetToken(t *testing.T) {
-	d := setUp()
+	d := initializeTestDatabase()
 
 	name := "TestUserForToken"
 	username := "TestUserForToken"

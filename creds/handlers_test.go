@@ -3,6 +3,7 @@ package creds
 import (
 	"encoding/json"
 	"fmt"
+	"io"
 	"log"
 	"net/http"
 	"net/http/httptest"
@@ -18,26 +19,25 @@ func TestGetUsers(t *testing.T) {
 	router := new(httprouter.Router)
 	setupRoutes(router, setup.database, setup.adminScope)
 
-	recorder := httptest.NewRecorder()
-	request, err := http.NewRequest("GET", url, nil)
-	if request == nil {
-		log.Panic("Created request is `nil`")
-	}
-	if err != nil {
-		log.Panicf("Unable to create request: %s", err.Error())
-	}
+	withRecorder("GET",
+		url,
+		nil,
+		[]headerEntry{bearerToken(setup.adminToken)},
+		router,
+		func(recorder *httptest.ResponseRecorder, request *http.Request) {
+			users := make([]User, 0)
+			if err := json.NewDecoder(recorder.Body).Decode(&users); err != nil {
+				log.Panicf("Unable to decode response into `[]User`: %s", err.Error())
+			}
 
-	request.Header.Add("Authorization", fmt.Sprintf("Bearer %s", setup.adminToken.String()))
-	router.ServeHTTP(recorder, request)
+			if len(users) != 1 {
+				log.Panicf("Unexpected user list length: %d", len(users))
+			}
 
-	users := make([]User, 0)
-	if err := json.NewDecoder(recorder.Body).Decode(&users); err != nil {
-		log.Panicf("Unable to decode response into `[]User`: %s", err.Error())
-	}
-
-	if len(users) != 1 {
-		log.Panicf("Unexpected user list length: %d", len(users))
-	}
+			if users[0].Id != setup.adminId || users[0].Tokens[0].Id != setup.adminToken {
+				log.Panicf("Retrieved data doesn't match setup data:\n\tSetup: %+v\n\tRetrieved User: %+v\n", setup, users[0])
+			}
+		})
 
 	runBadTokenTests(router, url)
 }
@@ -50,74 +50,93 @@ func TestGetUser(t *testing.T) {
 	router := new(httprouter.Router)
 	setupRoutes(router, setup.database, setup.adminScope)
 
-	recorder := httptest.NewRecorder()
-	request, err := http.NewRequest("GET", existingUserUrl, nil)
-	if request == nil {
-		log.Panic("Created request is `nil`")
-	}
-	if err != nil {
-		log.Panicf("Unable to create request: %s", err.Error())
-	}
+	headers := []headerEntry{bearerToken(setup.adminToken)}
+	withRecorder("GET",
+		existingUserUrl,
+		nil,
+		headers,
+		router,
+		func(recorder *httptest.ResponseRecorder, request *http.Request) {
+			if recorder.Code != http.StatusOK {
+				log.Panicf("Bad code for existing user: %d", recorder.Code)
+			}
 
-	request.Header.Add("Authorization", fmt.Sprintf("Bearer %s", setup.adminToken.String()))
-	router.ServeHTTP(recorder, request)
-
-	if recorder.Code != http.StatusOK {
-		log.Panicf("Bad code for existing user: %d", recorder.Code)
-	}
-
-	user := User{}
-	if err := json.NewDecoder(recorder.Body).Decode(&user); err != nil {
-		log.Panicf("Unable to decode response into `User`: %s", err.Error())
-	}
+			user := User{}
+			if err := json.NewDecoder(recorder.Body).Decode(&user); err != nil {
+				log.Panicf("Unable to decode response into `User`: %s", err.Error())
+			}
+		})
 
 	// Bad user (non-existent)
-	recorder = httptest.NewRecorder()
-	request, err = http.NewRequest("GET", badUserUrl, nil)
-	if request == nil {
-		log.Panic("Created request is `nil`")
-	}
-	if err != nil {
-		log.Panicf("Unable to create request: %s", err.Error())
-	}
-
-	request.Header.Add("Authorization", fmt.Sprintf("Bearer %s", setup.adminToken.String()))
-	router.ServeHTTP(recorder, request)
-	if recorder.Code != http.StatusNotFound {
-		log.Panicf("Bad code for not found user: %d", recorder.Code)
-	}
+	withRecorder("GET",
+		badUserUrl,
+		nil,
+		headers,
+		router,
+		func(recorder *httptest.ResponseRecorder, request *http.Request) {
+			if recorder.Code != http.StatusNotFound {
+				log.Panicf("Bad code for not found user: %d", recorder.Code)
+			}
+		})
 
 	runBadTokenTests(router, existingUserUrl)
 }
 
+type headerEntry struct {
+	key   string
+	value string
+}
+
+func withRecorder(method string,
+	url string,
+	body io.Reader,
+	headers []headerEntry,
+	router *httprouter.Router,
+	f func(recorder *httptest.ResponseRecorder, request *http.Request),
+) {
+	recorder := httptest.NewRecorder()
+	request, err := http.NewRequest(method, url, body)
+	if err != nil {
+		log.Panicf("Error creating request: %s", err.Error())
+	}
+	if request == nil {
+		log.Panicln("Nil request on create")
+	}
+
+	for _, h := range headers {
+		request.Header.Set(h.key, h.value)
+	}
+
+	router.ServeHTTP(recorder, request)
+	f(recorder, request)
+}
+
 func runBadTokenTests(router *httprouter.Router, url string) {
 	// Bad token test
-	recorder := httptest.NewRecorder()
-	request, err := http.NewRequest("GET", url, nil)
-
-	if request == nil {
-		log.Panic("Created request is `nil`")
-	}
-	if err != nil {
-		log.Panicf("Unable to create request: %s", err.Error())
-	}
-	request.Header.Add("Authorization", fmt.Sprintf("Bearer %s", uuid.New()))
-	router.ServeHTTP(recorder, request)
-	if recorder.Code != http.StatusUnauthorized {
-		log.Panicf("Bad token does not return unauthorized status code: %d", recorder.Code)
-	}
+	withRecorder("GET",
+		url,
+		nil,
+		[]headerEntry{bearerToken(uuid.New())},
+		router,
+		func(recorder *httptest.ResponseRecorder, request *http.Request) {
+			if recorder.Code != http.StatusUnauthorized {
+				log.Panicf("Bad token does not return unauthorized status code: %d", recorder.Code)
+			}
+		})
 
 	// No token test
-	recorder = httptest.NewRecorder()
-	request, err = http.NewRequest("GET", url, nil)
-	if request == nil {
-		log.Panic("Created request is `nil`")
-	}
-	if err != nil {
-		log.Panicf("Unable to create request: %s", err.Error())
-	}
-	router.ServeHTTP(recorder, request)
-	if recorder.Code != http.StatusUnauthorized {
-		log.Panicf("Bad token does not return unauthorized status code: %d", recorder.Code)
-	}
+	withRecorder("GET",
+		url,
+		nil,
+		[]headerEntry{},
+		router,
+		func(recorder *httptest.ResponseRecorder, request *http.Request) {
+			if recorder.Code != http.StatusUnauthorized {
+				log.Panicf("No token does not return unauthorized status code: %d", recorder.Code)
+			}
+		})
+}
+
+func bearerToken(token fmt.Stringer) headerEntry {
+	return headerEntry{"Authorization", fmt.Sprintf("Bearer %s", token)}
 }

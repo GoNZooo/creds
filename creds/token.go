@@ -27,3 +27,13 @@ func insertToken(database *pg.DB, id uuid.UUID, scope string) (uuid.UUID, error)
 
 	return tokenId, nil
 }
+
+func getTokenById(database *pg.DB, id uuid.UUID) (*Token, error) {
+	token := &Token{Id: id}
+
+	if err := database.Model(token).WherePK().Select(); err != nil {
+		return nil, err
+	}
+
+	return token, nil
+}

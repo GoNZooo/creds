@@ -31,6 +31,7 @@ func (server *Server) Serve(port int, database *pg.DB, adminScope string) {
 	}
 
 	setupRoutes(server.router, database, adminScope)
+	fmt.Printf("Running server on port %d\n", port)
 
 	if err := http.ListenAndServe(fmt.Sprintf(":%d", port), server); err != nil {
 		log.Panicf("Error trying to start server: %server", err.Error())

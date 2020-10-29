@@ -12,6 +12,7 @@ func setupRoutes(router *httprouter.Router, database *pg.DB, adminScope string) 
 		post{"/tokens", handleAddToken(database, adminScope)},
 		get{"/tokens", handleGetTokens(database, adminScope)},
 		post{"/users", handleAddUser(database, adminScope)},
+		del{"/users", handleDeleteUser(database, adminScope)},
 		get{"/users", handleGetUsers(database, adminScope)},
 		get{"/user/:Id", handleGetUser(database, adminScope)},
 	}
@@ -42,6 +43,19 @@ func (get get) toRouteData() routeData {
 		method:  "GET",
 		path:    get.path,
 		handler: get.handler,
+	}
+}
+
+type del struct {
+	path    string
+	handler http.HandlerFunc
+}
+
+func (del del) toRouteData() routeData {
+	return routeData{
+		method:  "DELETE",
+		path:    del.path,
+		handler: del.handler,
 	}
 }
 

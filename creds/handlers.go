@@ -3,6 +3,7 @@ package creds
 import (
 	"encoding/json"
 	"fmt"
+	"io/ioutil"
 	"net/http"
 	"strings"
 
@@ -181,6 +182,55 @@ func handleAddUser(database *pg.DB, adminScope string) http.HandlerFunc {
 		}
 
 		_ = json.NewEncoder(writer).Encode(userId)
+	}
+}
+
+func handleDeleteUser(database *pg.DB, adminScope string) http.HandlerFunc {
+	return func(writer http.ResponseWriter, request *http.Request) {
+		adminToken := getAdminTokenId(request)
+		hasAdminScope := tokenHasScope(database, adminToken, adminScope)
+		if !hasAdminScope {
+			response := fmt.Sprintf("Incorrect or no authorization token given for this resource: %s", adminToken)
+			http.Error(writer, response, http.StatusUnauthorized)
+
+			return
+		}
+
+		bodyBytes, err := ioutil.ReadAll(request.Body)
+		if err != nil {
+			response := fmt.Sprintf("Unable to read body: %s", err.Error())
+			http.Error(writer, response, http.StatusBadRequest)
+
+			return
+		}
+
+		id, err := uuid.ParseBytes(bodyBytes)
+		if err != nil {
+			response := fmt.Sprintf("Unable to decode parameter as ID: %s", err.Error())
+			http.Error(writer, response, http.StatusBadRequest)
+
+			return
+		}
+
+		context := database.Context()
+		if err := database.RunInTransaction(context, func(transaction *pg.Tx) error {
+			tokens := make([]Token, 0)
+			if _, err := database.Model(&tokens).Where("user_id = ?", id).Delete(); err != nil {
+				return err
+			}
+
+			user := User{Id: id}
+			if _, err := database.Model(&user).WherePK().Delete(); err != nil {
+				return err
+			}
+
+			return nil
+		}); err != nil {
+			response := fmt.Sprintf("Unable to del user: %s", err.Error())
+			http.Error(writer, response, http.StatusInternalServerError)
+
+			return
+		}
 	}
 }
 

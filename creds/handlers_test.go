@@ -63,9 +63,9 @@ func TestGetTokens(t *testing.T) {
 				log.Panicf("Unexpected token list length: %d", len(tokens))
 			}
 
-			//if tokens[0].Id != setup.adminId || tokens[0].Tokens[0].Id != setup.adminToken {
-			//	log.Panicf("Retrieved data doesn't match setup data:\n\tSetup: %+v\n\tRetrieved User: %+v\n", setup, tokens[0])
-			//}
+			if tokens[0].Id != setup.adminToken {
+				log.Panicf("Retrieved data doesn't match setup data:\n\tSetup: %+v\n\tRetrieved Token: %+v\n", setup, tokens[0])
+			}
 		})
 
 	runBadTokenTests(router, url)

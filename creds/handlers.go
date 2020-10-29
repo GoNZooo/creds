@@ -226,7 +226,7 @@ func handleDeleteUser(database *pg.DB, adminScope string) http.HandlerFunc {
 
 			return nil
 		}); err != nil {
-			response := fmt.Sprintf("Unable to del user: %s", err.Error())
+			response := fmt.Sprintf("Unable to delete user: %s", err.Error())
 			http.Error(writer, response, http.StatusInternalServerError)
 
 			return

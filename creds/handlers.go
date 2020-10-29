@@ -255,6 +255,31 @@ func handleGetUsers(database *pg.DB, adminScope string) http.HandlerFunc {
 	}
 }
 
+func handleGetTokens(database *pg.DB, adminScope string) http.HandlerFunc {
+	return func(writer http.ResponseWriter, request *http.Request) {
+		adminToken := getAdminTokenId(request)
+		hasAdminScope := tokenHasScope(database, adminToken, adminScope)
+		if !hasAdminScope {
+			response := fmt.Sprintf("Incorrect or no authorization token given for this resource: %s", adminToken)
+			http.Error(writer, response, http.StatusUnauthorized)
+
+			return
+		}
+
+		tokens := make([]Token, 0)
+		if err := database.Model(&tokens).Select(); err != nil {
+			response := fmt.Sprintf("Error getting tokens")
+			http.Error(writer, response, http.StatusInternalServerError)
+
+			return
+		}
+
+		if err := json.NewEncoder(writer).Encode(tokens); err != nil {
+			fmt.Printf("Unable to write user list to socket: %s", err.Error())
+		}
+	}
+}
+
 func tokenHasScope(database *pg.DB, tokenId uuid.UUID, scope string) bool {
 	exists, err := database.Model((*Token)(nil)).Where("id = ? AND scope = ?", tokenId, scope).Exists()
 	if err != nil {

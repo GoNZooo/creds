@@ -42,6 +42,35 @@ func TestGetUsers(t *testing.T) {
 	runBadTokenTests(router, url)
 }
 
+func TestGetTokens(t *testing.T) {
+	url := "/tokens"
+	setup := initializeTestData(nil)
+	router := new(httprouter.Router)
+	setupRoutes(router, setup.database, setup.adminScope)
+
+	withRecorder("GET",
+		url,
+		nil,
+		[]headerEntry{bearerToken(setup.adminToken)},
+		router,
+		func(recorder *httptest.ResponseRecorder, request *http.Request) {
+			tokens := make([]Token, 0)
+			if err := json.NewDecoder(recorder.Body).Decode(&tokens); err != nil {
+				log.Panicf("Unable to decode response into `[]User`: %s", err.Error())
+			}
+
+			if len(tokens) != 1 {
+				log.Panicf("Unexpected token list length: %d", len(tokens))
+			}
+
+			//if tokens[0].Id != setup.adminId || tokens[0].Tokens[0].Id != setup.adminToken {
+			//	log.Panicf("Retrieved data doesn't match setup data:\n\tSetup: %+v\n\tRetrieved User: %+v\n", setup, tokens[0])
+			//}
+		})
+
+	runBadTokenTests(router, url)
+}
+
 func TestGetUser(t *testing.T) {
 	setup := initializeTestData(nil)
 

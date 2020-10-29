@@ -10,6 +10,7 @@ import (
 func setupRoutes(router *httprouter.Router, database *pg.DB, adminScope string) {
 	routes := []routeSpecification{
 		post{"/tokens", handleAddToken(database, adminScope)},
+		get{"/tokens", handleGetTokens(database, adminScope)},
 		post{"/users", handleAddUser(database, adminScope)},
 		get{"/users", handleGetUsers(database, adminScope)},
 		get{"/user/:Id", handleGetUser(database, adminScope)},

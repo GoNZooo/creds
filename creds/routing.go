@@ -15,6 +15,7 @@ func setupRoutes(router *httprouter.Router, database *pg.DB, adminScope string) 
 		del{"/users", handleDeleteUser(database, adminScope)},
 		get{"/users", handleGetUsers(database, adminScope)},
 		get{"/user/:Id", handleGetUser(database, adminScope)},
+		del{"/tokens", handleDeleteToken(database, adminScope)},
 	}
 
 	addRoutes(router, routes)

@@ -330,6 +330,43 @@ func handleGetTokens(database *pg.DB, adminScope string) http.HandlerFunc {
 	}
 }
 
+func handleDeleteToken(database *pg.DB, adminScope string) http.HandlerFunc {
+	return func(writer http.ResponseWriter, request *http.Request) {
+		adminToken := getAdminTokenId(request)
+		hasAdminScope := tokenHasScope(database, adminToken, adminScope)
+		if !hasAdminScope {
+			response := fmt.Sprintf("Incorrect or no authorization token given for this resource: %s", adminToken)
+			http.Error(writer, response, http.StatusUnauthorized)
+
+			return
+		}
+
+		bodyBytes, err := ioutil.ReadAll(request.Body)
+		if err != nil {
+			response := fmt.Sprintf("Unable to read body: %s", err.Error())
+			http.Error(writer, response, http.StatusBadRequest)
+
+			return
+		}
+
+		id, err := uuid.ParseBytes(bodyBytes)
+		if err != nil {
+			response := fmt.Sprintf("Unable to decode parameter as ID: %s", err.Error())
+			http.Error(writer, response, http.StatusBadRequest)
+
+			return
+		}
+
+		token := Token{Id: id}
+		if _, err := database.Model(&token).WherePK().Delete(); err != nil {
+			response := fmt.Sprintf("Unable to delete token: %s", err.Error())
+			http.Error(writer, response, http.StatusInternalServerError)
+
+			return
+		}
+	}
+}
+
 func tokenHasScope(database *pg.DB, tokenId uuid.UUID, scope string) bool {
 	exists, err := database.Model((*Token)(nil)).Where("id = ? AND scope = ?", tokenId, scope).Exists()
 	if err != nil {

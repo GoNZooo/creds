@@ -13,15 +13,13 @@ import (
 )
 
 type addTokenParameters struct {
-	UserId     uuid.UUID
-	Scope      null.String
-	AdminToken uuid.UUID
+	UserId uuid.UUID
+	Scope  null.String
 }
 
 type addTokenParametersError struct {
-	UserId     bool
-	Scope      bool
-	AdminToken bool
+	UserId bool
+	Scope  bool
 }
 
 func (parametersError addTokenParametersError) Error() string {
@@ -35,33 +33,25 @@ func (parametersError addTokenParametersError) Error() string {
 		errors = append(errors, "'scope' missing")
 	}
 
-	if parametersError.AdminToken {
-		errors = append(errors, "'adminToken' missing")
-	}
-
 	return strings.Join(errors, ", ")
 }
 
 func (parameters *addTokenParameters) UnmarshalJSON(bytes []byte) error {
 	var toUnmarshal struct {
-		UserId      uuid.UUID
-		Scope       null.String
-		AdminUserId uuid.UUID
-		AdminToken  uuid.UUID
+		UserId uuid.UUID
+		Scope  null.String
 	}
 	if err := json.Unmarshal(bytes, &toUnmarshal); err != nil {
 		return err
 	}
 
 	parameters.UserId = toUnmarshal.UserId
-	parameters.AdminToken = toUnmarshal.AdminToken
 	parameters.Scope = toUnmarshal.Scope
 
-	if parameters.UserId.ID() == 0 || !parameters.Scope.Valid || parameters.AdminToken.ID() == 0 {
+	if parameters.UserId.ID() == 0 || !parameters.Scope.Valid {
 		return addTokenParametersError{
-			UserId:     parameters.UserId.ID() == 0,
-			Scope:      !parameters.Scope.Valid,
-			AdminToken: parameters.AdminToken.ID() == 0,
+			UserId: parameters.UserId.ID() == 0,
+			Scope:  !parameters.Scope.Valid,
 		}
 	}
 
@@ -70,17 +60,18 @@ func (parameters *addTokenParameters) UnmarshalJSON(bytes []byte) error {
 
 func handleAddToken(database *pg.DB, adminScope string) http.HandlerFunc {
 	return func(writer http.ResponseWriter, request *http.Request) {
-		var parameters addTokenParameters
-		if err := json.NewDecoder(request.Body).Decode(&parameters); err != nil {
-			response := fmt.Sprintf("Error decoding parameters for adding token: %s", err.Error())
-			http.Error(writer, response, http.StatusBadRequest)
+		adminToken := getAdminTokenId(request)
+		hasAdminScope := tokenHasScope(database, adminToken, adminScope)
+		if !hasAdminScope {
+			response := fmt.Sprintf("Incorrect or no authorization token given for this resource: %s", adminToken)
+			http.Error(writer, response, http.StatusUnauthorized)
 
 			return
 		}
 
-		hasAdminScope := tokenHasScope(database, parameters.AdminToken, adminScope)
-		if !hasAdminScope {
-			response := "Insufficient privileges for adding tokens"
+		var parameters addTokenParameters
+		if err := json.NewDecoder(request.Body).Decode(&parameters); err != nil {
+			response := fmt.Sprintf("Error decoding parameters for adding token: %s", err.Error())
 			http.Error(writer, response, http.StatusBadRequest)
 
 			return

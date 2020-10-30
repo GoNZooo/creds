@@ -1,6 +1,7 @@
 package creds
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -11,6 +12,7 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/julienschmidt/httprouter"
+	"gopkg.in/guregu/null.v4"
 )
 
 func TestGetUsers(t *testing.T) {
@@ -109,6 +111,42 @@ func TestGetUser(t *testing.T) {
 		})
 
 	runBadTokenTests(router, existingUserUrl)
+}
+
+func TestAddUser(t *testing.T) {
+	setup := initializeTestData(nil)
+
+	url := "/users"
+	router := new(httprouter.Router)
+	setupRoutes(router, setup.database, setup.adminScope)
+
+	headers := []headerEntry{bearerToken(setup.adminToken)}
+	parameterBytes, err := json.Marshal(addUserParameters{
+		Username: null.StringFrom("DJ Testo"),
+		Name:     null.StringFrom("Test Testersson"),
+	})
+	if err != nil {
+		log.Panicf("Unable to serialize `addUserParameters`: %s", err.Error())
+	}
+	parameterReader := bytes.NewReader(parameterBytes)
+
+	withRecorder("POST",
+		url,
+		parameterReader,
+		headers,
+		router,
+		func(recorder *httptest.ResponseRecorder, request *http.Request) {
+			if recorder.Code != http.StatusOK {
+				log.Panicf("Bad status code for adding user: %d", recorder.Code)
+			}
+
+			id := uuid.UUID{}
+			if err := json.NewDecoder(recorder.Body).Decode(&id); err != nil {
+				log.Panicf("Unable to read body into UUID: %s", err.Error())
+			}
+		})
+
+	runBadTokenTests(router, url)
 }
 
 type headerEntry struct {

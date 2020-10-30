@@ -56,7 +56,7 @@ func initializeTestData(database *pg.DB) setUpData {
 	models := []interface{}{(*User)(nil), (*Token)(nil)}
 	for _, model := range models {
 		if err := database.Model(model).CreateTable(
-			&orm.CreateTableOptions{Temp: true, IfNotExists: true},
+			&orm.CreateTableOptions{Temp: true, IfNotExists: true, FKConstraints: true},
 		); err != nil {
 			log.Panicf("Unable to create test database: %s", err.Error())
 		}

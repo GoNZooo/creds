@@ -21,7 +21,7 @@ func main() {
 
 	adminScope := creds.GetRequiredEnvironmentVariable("ADMIN_SCOPE")
 	database := creds.ConnectToDatabase(databaseOptions)
-	err := creds.CreateSchema(database, &orm.CreateTableOptions{Temp: false, IfNotExists: true})
+	err := creds.CreateSchema(database, &orm.CreateTableOptions{Temp: false, IfNotExists: true, FKConstraints: true})
 	if err != nil {
 		log.Panicf("`CreateSchema` error: %server", err.Error())
 	}

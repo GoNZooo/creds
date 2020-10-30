@@ -1,6 +1,9 @@
 package creds
 
 import (
+	"fmt"
+	"strings"
+
 	"github.com/go-pg/pg/v10"
 	"github.com/google/uuid"
 )
@@ -10,6 +13,14 @@ type Token struct {
 	Scope  string    `json:"scope"`
 	UserId uuid.UUID `json:"userId" pg:"type:uuid,notnull"`
 	User   *User     `json:"user" pg:"rel:has-one"`
+}
+
+type NoSuchUserError struct {
+	UserId uuid.UUID
+}
+
+func (noSuchUserError NoSuchUserError) Error() string {
+	return fmt.Sprintf("User with Id '%s' does not exist", noSuchUserError.UserId)
 }
 
 func insertToken(database *pg.DB, id uuid.UUID, scope string) (uuid.UUID, error) {
@@ -22,6 +33,10 @@ func insertToken(database *pg.DB, id uuid.UUID, scope string) (uuid.UUID, error)
 	}
 
 	if _, err := database.Model(&token).Insert(); err != nil {
+		if strings.Contains(err.Error(), "tokens_user_id_fkey") {
+			return uuid.Nil, NoSuchUserError{UserId: id}
+		}
+
 		return uuid.Nil, err
 	}
 

@@ -149,6 +149,62 @@ func TestAddUser(t *testing.T) {
 	runBadTokenTests(router, url)
 }
 
+func TestAddToken(t *testing.T) {
+	setup := initializeTestData(nil)
+
+	url := "/tokens"
+	router := new(httprouter.Router)
+	setupRoutes(router, setup.database, setup.adminScope)
+
+	headers := []headerEntry{bearerToken(setup.adminToken)}
+	parameterBytes, err := json.Marshal(addTokenParameters{
+		UserId: setup.adminId,
+		Scope:  null.StringFrom("testing-scope"),
+	})
+	if err != nil {
+		log.Panicf("Unable to serialize `addUserParameters`: %s", err.Error())
+	}
+	parameterReader := bytes.NewReader(parameterBytes)
+
+	withRecorder("POST",
+		url,
+		parameterReader,
+		headers,
+		router,
+		func(recorder *httptest.ResponseRecorder, request *http.Request) {
+			if recorder.Code != http.StatusOK {
+				log.Panicf("Bad status code for adding token: %d\n\tBody: %s\n\tSetup.AdminToken: %s\tSetup.AdminID: %s", recorder.Code, recorder.Body, setup.adminToken, setup.adminId)
+			}
+
+			id := uuid.UUID{}
+			if err := json.NewDecoder(recorder.Body).Decode(&id); err != nil {
+				log.Panicf("Unable to read body into UUID: %s", err.Error())
+			}
+		})
+
+	noSuchUserBytes, err := json.Marshal(addTokenParameters{
+		UserId: uuid.New(),
+		Scope:  null.StringFrom(setup.adminScope),
+	})
+	if err != nil {
+		log.Panicf("Unable to serialize `addUserParameters`: %s", err.Error())
+	}
+	noSuchUserParameterReader := bytes.NewReader(noSuchUserBytes)
+
+	withRecorder("POST",
+		url,
+		noSuchUserParameterReader,
+		headers,
+		router,
+		func(recorder *httptest.ResponseRecorder, request *http.Request) {
+			if recorder.Code != http.StatusNotFound {
+				log.Panicf("Bad status code for adding token for non-existant user: %d", recorder.Code)
+			}
+		})
+
+	runBadTokenTests(router, url)
+}
+
 type headerEntry struct {
 	key   string
 	value string

@@ -79,6 +79,12 @@ func handleAddToken(database *pg.DB, adminScope string) http.HandlerFunc {
 
 		tokenId, err := insertToken(database, parameters.UserId, parameters.Scope.String)
 		if err != nil {
+			if _, ok := err.(NoSuchUserError); ok {
+				response := fmt.Sprintf("Unable to create token: %s", err.Error())
+				http.Error(writer, response, http.StatusNotFound)
+
+				return
+			}
 			response := fmt.Sprintf("Unable to create token: %s", err.Error())
 			http.Error(writer, response, http.StatusBadRequest)
 
@@ -190,7 +196,7 @@ func handleDeleteUser(database *pg.DB, adminScope string) http.HandlerFunc {
 
 		id, err := uuid.ParseBytes(bodyBytes)
 		if err != nil {
-			response := fmt.Sprintf("Unable to decode parameter as ID: %s", err.Error())
+			response := fmt.Sprintf("Unable to decode parameter as Id: %s", err.Error())
 			http.Error(writer, response, http.StatusBadRequest)
 
 			return
@@ -335,7 +341,7 @@ func handleDeleteToken(database *pg.DB, adminScope string) http.HandlerFunc {
 
 		id, err := uuid.ParseBytes(bodyBytes)
 		if err != nil {
-			response := fmt.Sprintf("Unable to decode parameter as ID: %s", err.Error())
+			response := fmt.Sprintf("Unable to decode parameter as Id: %s", err.Error())
 			http.Error(writer, response, http.StatusBadRequest)
 
 			return

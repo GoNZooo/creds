@@ -3,6 +3,7 @@ package creds
 import (
 	"log"
 	"testing"
+	"time"
 )
 
 func TestAddAndGetUser(t *testing.T) {
@@ -48,7 +49,7 @@ func TestAddAndGetToken(t *testing.T) {
 		log.Panicf("User with id '%s' does not exist or has incorrect data: %+v", id, user)
 	}
 
-	tokenId, err := insertToken(d.database, user.Id, "TestingScope")
+	tokenId, err := insertToken(d.database, user.Id, "TestingScope", time.Now(), time.Now().AddDate(1, 0, 0))
 	if err != nil {
 		log.Panicf("Unable to insert token: %s", err.Error())
 	}

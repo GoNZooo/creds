@@ -6,6 +6,7 @@ import (
 	"io/ioutil"
 	"net/http"
 	"strings"
+	"time"
 
 	"github.com/go-pg/pg/v10"
 	"github.com/google/uuid"
@@ -15,6 +16,8 @@ import (
 type addTokenParameters struct {
 	UserId uuid.UUID
 	Scope  null.String
+	Start  time.Time
+	End    time.Time
 }
 
 type addTokenParametersError struct {
@@ -40,6 +43,8 @@ func (parameters *addTokenParameters) UnmarshalJSON(bytes []byte) error {
 	var toUnmarshal struct {
 		UserId uuid.UUID
 		Scope  null.String
+		Start  time.Time
+		End    time.Time
 	}
 	if err := json.Unmarshal(bytes, &toUnmarshal); err != nil {
 		return err
@@ -47,6 +52,8 @@ func (parameters *addTokenParameters) UnmarshalJSON(bytes []byte) error {
 
 	parameters.UserId = toUnmarshal.UserId
 	parameters.Scope = toUnmarshal.Scope
+	parameters.Start = toUnmarshal.Start
+	parameters.End = toUnmarshal.End
 
 	if parameters.UserId.ID() == 0 || !parameters.Scope.Valid {
 		return addTokenParametersError{
@@ -77,7 +84,12 @@ func handleAddToken(database *pg.DB, adminScope string) http.HandlerFunc {
 			return
 		}
 
-		tokenId, err := insertToken(database, parameters.UserId, parameters.Scope.String)
+		tokenId, err := insertToken(database,
+			parameters.UserId,
+			parameters.Scope.String,
+			parameters.Start,
+			parameters.End,
+		)
 		if err != nil {
 			if _, ok := err.(NoSuchUserError); ok {
 				response := fmt.Sprintf("Unable to create token: %s", err.Error())

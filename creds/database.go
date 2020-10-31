@@ -3,6 +3,7 @@ package creds
 import (
 	"fmt"
 	"log"
+	"time"
 
 	"github.com/go-pg/pg/v10"
 	"github.com/go-pg/pg/v10/orm"
@@ -67,7 +68,7 @@ func initializeTestData(database *pg.DB) setUpData {
 		log.Panicf("Unable to create admin user: %s", err.Error())
 	}
 
-	adminToken, err := insertToken(database, adminId, adminScope)
+	adminToken, err := insertToken(database, adminId, adminScope, time.Time{}, time.Time{})
 	if err != nil {
 		log.Panicf("Unable to create admin token: %s", err.Error())
 	}
